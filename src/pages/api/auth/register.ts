@@ -1,3 +1,4 @@
+import type { Prisma } from '@prisma/client'
 import { rateLimit } from '../../../lib/rateLimit'
 import { getIP } from '../../../lib/ipRate'
 import { NextApiRequest, NextApiResponse } from 'next'
@@ -37,7 +38,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const hashed = await bcrypt.hash(data.password, 10)
 
   try {
-    const result = await prisma.$transaction(async (tx) => {
+    const result = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
       const user = await tx.user.create({ data: { email: data.email, name: data.fullName, password: hashed } })
       const business = await tx.business.create({ data: {
         ownerId: user.id,
@@ -54,7 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await prisma.auditLog.create({ data: { businessId: result.business.id, userId: result.user.id, action: 'ACCOUNT_CREATED', metadata: { message: 'User registered and business created', ip } } })
 
     return res.status(201).json({ ok: true })
-  } catch (err: any) {
+  } catch (err: unknown) {
     console.error(err)
     return res.status(500).json({ error: 'Unable to create account' })
   }

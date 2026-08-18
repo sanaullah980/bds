@@ -1,6 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { prisma } from '../../lib/prisma'
-import { getBusinessForSession } from '../../lib/auth'
+import { prisma } from '../../../lib/prisma'
+import { getBusinessForSession } from '../../../lib/auth'
 import { z } from 'zod'
 
 const ProductCreateSchema = z.object({
