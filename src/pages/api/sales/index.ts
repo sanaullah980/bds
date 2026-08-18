@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '../../../lib/prisma'
 import { getBusinessForSession } from '../../../lib/auth'
 import { z } from 'zod'
@@ -75,7 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         const paymentStatus = paid.greaterThanOrEqualTo(totalAmount) ? 'PAID' : (paid.equals(0) ? 'CREDIT' : 'PARTIAL')
 
         // Transaction: create sale and customer ledger if customer provided
-        const created = await prisma.$transaction(async (tx) => {
+        const created = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
           const sale = await tx.sale.create({ data: {
             businessId: business.id,
             reference: generateReference(),
@@ -183,7 +184,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const paymentStatus = paid.greaterThanOrEqualTo(totalAmount) ? 'PAID' : (paid.equals(0) ? 'CREDIT' : 'PARTIAL')
 
       // Transactional create
-      const created = await prisma.$transaction(async (tx) => {
+      const created = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
         const sale = await tx.sale.create({ data: {
           businessId: business.id,
           reference: generateReference(),
@@ -260,7 +261,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(201).json(created)
 
-    } catch (err: any) {
+    } catch (err: unknown) {
       console.error(err)
       return res.status(500).json({ error: 'Unable to create sale' })
     }
