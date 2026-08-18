@@ -135,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       type ProductsArray = Awaited<ReturnType<typeof prisma.product.findMany>>
       const products: ProductsArray = productIds.length > 0 ? await prisma.product.findMany({ where: { id: { in: productIds }, businessId: business.id } }) : []
       const productMap: Record<string, ProductsArray[number]> = {}
-      products.forEach((p) => { productMap[p.id] = p })
+      products.forEach((p: ProductsArray[number]) => { productMap[p.id] = p })
 
       // Validate ownership
       for (const it of items) {
