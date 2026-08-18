@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import type { Prisma, Product } from '@prisma/client'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '../../../lib/prisma'
 import { getBusinessForSession } from '../../../lib/auth'
 import { z } from 'zod'
@@ -132,9 +132,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // Fetch product details for items with productId
       const productIds = items.filter(i => i.productId).map(i => i.productId!)
-      const products: Product[] = productIds.length > 0 ? await prisma.product.findMany({ where: { id: { in: productIds }, businessId: business.id } }) : []
-      const productMap: Record<string, Product> = {}
-      products.forEach((p: Product) => { productMap[p.id] = p })
+      type ProductsArray = Awaited<ReturnType<typeof prisma.product.findMany>>
+      const products: ProductsArray = productIds.length > 0 ? await prisma.product.findMany({ where: { id: { in: productIds }, businessId: business.id } }) : []
+      const productMap: Record<string, ProductsArray[number]> = {}
+      products.forEach((p) => { productMap[p.id] = p })
 
       // Validate ownership
       for (const it of items) {
@@ -158,9 +159,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (it.productId) {
           const prod = productMap[it.productId]
           name = prod.name
-          costAtSale = it.cost ? new Decimal(it.cost) : new Decimal(prod.purchasePrice as any)
-          priceAtSale = it.price ? new Decimal(it.price) : new Decimal(prod.sellingPrice as any)
-          const currentStock = new Decimal(prod.stockQuantity as any)
+          costAtSale = it.cost ? new Decimal(it.cost) : new Decimal((prod as any).purchasePrice)
+          priceAtSale = it.price ? new Decimal(it.price) : new Decimal((prod as any).sellingPrice)
+          const currentStock = new Decimal((prod as any).stockQuantity)
           if (!business.allowNegativeStock && currentStock.lt(qty)) {
             insufficient.push(`${prod.name} (stock ${currentStock.toString()} < ${qty.toString()})`)
           }
@@ -227,7 +228,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             } })
             // update product stockQuantity
             const prod = productMap[r.productId]
-            const newStock = new Decimal(prod.stockQuantity as any).minus(new Decimal(r.qty))
+            const newStock = new Decimal((prod as any).stockQuantity).minus(new Decimal(r.qty))
             await tx.product.update({ where: { id: r.productId }, data: { stockQuantity: newStock.toFixed(3) } })
           }
         }
