@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { Prisma } from '@prisma/client'
-import { prisma } from '../../../lib/prisma'
-import { getBusinessForSession } from '../../../lib/auth'
+import { prisma } from '../lib/prisma'
+import { getBusinessForSession } from '../lib/auth'
 import { z } from 'zod'
 import Decimal from 'decimal.js'
 
@@ -117,19 +117,10 @@ export default async function handler(
       if (data.type === 'QUICK') {
         const totalAmount = new Decimal(data.totalAmount!)
 
-        let totalCost: Decimal | undefined = data.totalCost
+        // Ensure totalCost is always a Decimal
+        const totalCost: Decimal = data.totalCost
           ? new Decimal(data.totalCost)
-          : undefined
-
-        if (!totalCost && data.estimatedProfit) {
-          totalCost = totalAmount.minus(
-            new Decimal(data.estimatedProfit)
-          )
-        }
-
-        if (!totalCost) {
-          totalCost = new Decimal(0)
-        }
+          : (data.estimatedProfit ? totalAmount.minus(new Decimal(data.estimatedProfit!)) : new Decimal(0))
 
         const totalProfit = totalAmount.minus(totalCost)
 
@@ -204,27 +195,16 @@ export default async function handler(
         return res.status(201).json(created)
       }
 
-      const items = data.items!.map((it) => ({ ...it }))
+      const items: any[] = (data.items || []).map((it) => ({ ...it }))
 
       const productIds = items
         .filter((i) => i.productId)
         .map((i) => i.productId!)
 
-      const products =
-        productIds.length > 0
-          ? await prisma.product.findMany({
-              where: {
-                id: { in: productIds },
-                businessId: business.id,
-              },
-            })
-          : []
-
-      const productMap: Record<string, any> = {}
-
-      products.forEach((p) => {
-        productMap[p.id] = p
-      })
+      type ProductsArray = Awaited<ReturnType<typeof prisma.product.findMany>>
+      const products: ProductsArray = productIds.length > 0 ? await prisma.product.findMany({ where: { id: { in: productIds }, businessId: business.id } }) : []
+      const productMap: Record<string, ProductsArray[number]> = {}
+      products.forEach((p: ProductsArray[number]) => { productMap[p.id] = p })
 
       for (const it of items) {
         if (it.productId && !productMap[it.productId]) {
@@ -237,7 +217,7 @@ export default async function handler(
       let totalAmount = new Decimal(0)
       let totalCost = new Decimal(0)
 
-      const itemRows: any[] = []
+      const itemRows: { productId: string | null; storedName: string; qty: string; costAtSale: string; priceAtSale: string; totalCost: string; totalPrice: string; profit: string }[] = []
 
       const insufficient: string[] = []
 
@@ -256,15 +236,13 @@ export default async function handler(
 
           costAtSale = it.cost
             ? new Decimal(it.cost)
-            : new Decimal(prod.purchasePrice as any)
+            : new Decimal((prod as any).purchasePrice)
 
           priceAtSale = it.price
             ? new Decimal(it.price)
-            : new Decimal(prod.sellingPrice as any)
+            : new Decimal((prod as any).sellingPrice)
 
-          const currentStock = new Decimal(
-            prod.stockQuantity as any
-          )
+          const currentStock = new Decimal((prod as any).stockQuantity)
 
           if (
             !business.allowNegativeStock &&
