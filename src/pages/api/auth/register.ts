@@ -1,3 +1,5 @@
+import { rateLimit } from '../../../lib/rateLimit'
+import { getIP } from '../../../lib/ipRate'
 import { NextApiRequest, NextApiResponse } from 'next'
 import { z } from 'zod'
 import { prisma } from '../../../lib/prisma'
@@ -18,6 +20,11 @@ const RegisterSchema = z.object({
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.setHeader('Allow', 'POST').status(405).end('Method Not Allowed')
+
+  const ip = getIP(req)
+  const rl = rateLimit(ip)
+  if (!rl.ok) return res.status(429).json({ error: 'Too many requests', retryAfter: rl.retryAfter })
+
   const parse = RegisterSchema.safeParse(req.body)
   if (!parse.success) return res.status(400).json({ error: parse.error.format() })
   const data = parse.data
@@ -44,9 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return { user, business }
     })
 
-    // Don't return password
-    // Optionally: create an audit log entry
-    await prisma.auditLog.create({ data: { businessId: result.business.id, userId: result.user.id, action: 'ACCOUNT_CREATED', metadata: { message: 'User registered and business created' } } })
+    await prisma.auditLog.create({ data: { businessId: result.business.id, userId: result.user.id, action: 'ACCOUNT_CREATED', metadata: { message: 'User registered and business created', ip } } })
 
     return res.status(201).json({ ok: true })
   } catch (err: any) {

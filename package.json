@@ -1,3 +1,4 @@
+{
   "name": "shop-management-saas-starter",
   "version": "0.1.0",
   "private": true,
@@ -8,7 +9,8 @@
     "lint": "next lint",
     "prisma:generate": "prisma generate",
     "prisma:migrate": "prisma migrate dev --name init",
-    "seed": "node scripts/seed.js"
+    "seed": "node scripts/seed.js",
+    "test": "vitest"
   },
   "dependencies": {
     "next": "13.4.12",
@@ -28,6 +30,7 @@
     "postcss": "8.4.27",
     "autoprefixer": "10.4.14",
     "eslint": "8.49.0",
-    "eslint-config-next": "13.4.12"
+    "eslint-config-next": "13.4.12",
+    "vitest": "1.1.5"
   }
 }
