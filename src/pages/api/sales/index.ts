@@ -66,11 +66,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       if (data.type === 'QUICK') {
         const totalAmount = new Decimal(data.totalAmount!)
-        let totalCost: Decimal | undefined = data.totalCost ? new Decimal(data.totalCost) : undefined
-        if (!totalCost && data.estimatedProfit) {
-          totalCost = totalAmount.minus(new Decimal(data.estimatedProfit!))
-        }
-        if (!totalCost) totalCost = new Decimal(0)
+        // Determine totalCost deterministically so it's never undefined
+        const totalCost: Decimal = data.totalCost
+          ? new Decimal(data.totalCost)
+          : (data.estimatedProfit ? totalAmount.minus(new Decimal(data.estimatedProfit!)) : new Decimal(0))
+
         const totalProfit = totalAmount.minus(totalCost)
         const paid = new Decimal(data.paidAmount || '0')
         const paymentStatus = paid.greaterThanOrEqualTo(totalAmount) ? 'PAID' : (paid.equals(0) ? 'CREDIT' : 'PARTIAL')
