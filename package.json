@@ -22,7 +22,7 @@
     "zod": "3.23.2",
     "bcryptjs": "2.4.3",
     "decimal.js": "10.4.3",
-    "formidable": "3.7.0"
+    "formidable": "3.5.4"
   },
   "devDependencies": {
     "prisma": "5.8.1",
