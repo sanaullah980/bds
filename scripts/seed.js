@@ -13,7 +13,27 @@ async function main() {
   const hashed = await bcrypt.hash('password123', 10)
   const user = await prisma.user.create({ data: { email, name: 'Demo User', password: hashed } })
   const business = await prisma.business.create({ data: { ownerId: user.id, name: 'Demo Shop', ownerName: 'Demo User', currency: process.env.NEXT_PUBLIC_DEFAULT_CURRENCY || 'PKR' } })
-  console.log('Created demo user & business:', user.email, business.name)
+
+  // Create a sample product
+  await prisma.product.create({ data: {
+    businessId: business.id,
+    name: 'Coca Cola',
+    sku: 'CC-001',
+    purchasePrice: '100.00',
+    sellingPrice: '130.00',
+    stockQuantity: '10',
+    unit: 'Piece',
+  } })
+
+  // Create a sample customer
+  await prisma.customer.create({ data: {
+    businessId: business.id,
+    name: 'Ahmed',
+    phone: '03000000000',
+    openingBalance: '0'
+  } })
+
+  console.log('Created demo user, business, product and customer:', user.email, business.name)
 }
 
 main()

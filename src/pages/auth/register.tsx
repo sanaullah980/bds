@@ -1,9 +1,12 @@
 import React, { useState } from 'react'
+import { signIn } from 'next-auth/react'
+import { useRouter } from 'next/router'
 
 export default function RegisterPage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [success, setSuccess] = useState<string | null>(null)
+  const router = useRouter()
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault()
@@ -32,6 +35,14 @@ export default function RegisterPage() {
       })
       const json = await res.json()
       if (!res.ok) throw new Error(json.error || 'Registration failed')
+      // Auto sign-in after successful registration
+      const signInResult = await signIn('credentials', { redirect: false, email: data.email, password: data.password })
+      if (signInResult && (signInResult as any).ok) {
+        // Redirect to dashboard
+        router.push('/')
+        return
+      }
+
       setSuccess('Registration successful — you can now sign in')
       form.reset()
     } catch (err: any) {
