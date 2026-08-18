@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import type { Prisma } from '@prisma/client'
+import type { Prisma, Product } from '@prisma/client'
 import { prisma } from '../../../lib/prisma'
 import { getBusinessForSession } from '../../../lib/auth'
 import { z } from 'zod'
@@ -12,6 +12,8 @@ const SaleItemSchema = z.object({
   cost: z.union([z.string(), z.number()]).optional().transform((v) => v === undefined ? undefined : v.toString()),
   price: z.union([z.string(), z.number()]).optional().transform((v) => v === undefined ? undefined : v.toString()),
 })
+
+type SaleItem = z.infer<typeof SaleItemSchema>
 
 const SaleCreateSchema = z.object({
   type: z.enum(['NAMED', 'BULK', 'QUICK']),
@@ -126,13 +128,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // NAMED or BULK
       // Load products involved and validate ownership & stock
-      const items = data.items!.map((it) => ({ ...it }))
+      const items: SaleItem[] = (data.items || []).map((it) => ({ ...it }))
 
       // Fetch product details for items with productId
       const productIds = items.filter(i => i.productId).map(i => i.productId!)
-      const products = productIds.length > 0 ? await prisma.product.findMany({ where: { id: { in: productIds }, businessId: business.id } }) : []
-      const productMap: Record<string, any> = {}
-      products.forEach(p => { productMap[p.id] = p })
+      const products: Product[] = productIds.length > 0 ? await prisma.product.findMany({ where: { id: { in: productIds }, businessId: business.id } }) : []
+      const productMap: Record<string, Product> = {}
+      products.forEach((p: Product) => { productMap[p.id] = p })
 
       // Validate ownership
       for (const it of items) {
@@ -144,7 +146,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Calculate totals and prepare adjustments
       let totalAmount = new Decimal(0)
       let totalCost = new Decimal(0)
-      const itemRows: any[] = []
+      const itemRows: { productId: string | null; storedName: string; qty: string; costAtSale: string; priceAtSale: string; totalCost: string; totalPrice: string; profit: string }[] = []
 
       // Check stock availability
       const insufficient: string[] = []
