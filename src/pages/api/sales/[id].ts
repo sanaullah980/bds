@@ -1,4 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
+import type { Prisma } from '@prisma/client'
 import { prisma } from '../../../lib/prisma'
 import { getBusinessForSession } from '../../../lib/auth'
 
@@ -28,7 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (action === 'cancel') {
       // Idempotent cancellation: create reversal entries and restock items
       try {
-        const reversed = await prisma.$transaction(async (tx) => {
+        const reversed = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
           // Create reversal sale record? Alternatively mark sale as refunded/cancelled. We'll create ledger reversal and inventory restock.
           // Customer ledger reversal
           if (sale.customerId) {
