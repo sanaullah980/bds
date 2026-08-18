@@ -1,0 +1,228 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// See the detailed schema in the project specification. Decimal types are used for money & quantities.
+
+model User {
+  id         String    @id @default(uuid())
+  email      String    @unique
+  name       String?
+  password   String?
+  createdAt  DateTime  @default(now())
+  updatedAt  DateTime  @updatedAt
+  business   Business?
+  auditLogs  AuditLog[]
+}
+
+model Business {
+  id            String    @id @default(uuid())
+  ownerId       String
+  owner         User      @relation(fields: [ownerId], references: [id])
+  name          String
+  ownerName     String?
+  phone         String?
+  address       String?
+  category      String?
+  currency      String    @default("PKR")
+  timezone      String?
+  allowNegativeStock Boolean @default(false)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  products      Product[]
+  categories    Category[]
+  customers     Customer[]
+  sales         Sale[]
+  expenses      Expense[]
+  inventoryAdjustments InventoryAdjustment[]
+  auditLogs     AuditLog[]
+
+  @@index([ownerId])
+}
+
+model Category {
+  id         String   @id @default(uuid())
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  name       String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  products   Product[]
+
+  @@index([businessId])
+}
+
+model Product {
+  id           String   @id @default(uuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id])
+  name         String
+  sku          String?
+  description  String?
+  categoryId   String?
+  category     Category? @relation(fields: [categoryId], references: [id])
+  purchasePrice Decimal  @db.Decimal(12,2)
+  sellingPrice  Decimal  @db.Decimal(12,2)
+  stockQuantity Decimal  @db.Decimal(12,3) @default(0)
+  minStock     Decimal  @db.Decimal(12,3) @default(0)
+  unit         String?
+  imageUrl     String?
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  saleItems    SaleItem[]
+  adjustments  InventoryAdjustment[]
+
+  @@index([businessId])
+  @@index([sku])
+}
+
+model Customer {
+  id            String   @id @default(uuid())
+  businessId    String
+  business      Business @relation(fields: [businessId], references: [id])
+  name          String
+  phone         String?
+  address       String?
+  notes         String?
+  openingBalance Decimal @db.Decimal(12,2) @default(0)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  ledgerEntries CustomerLedgerEntry[]
+  sales         Sale[]
+
+  @@index([businessId])
+  @@index([phone])
+}
+
+model CustomerLedgerEntry {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  customerId  String?
+  customer    Customer? @relation(fields: [customerId], references: [id])
+  amount      Decimal  @db.Decimal(12,2)
+  type        LedgerType
+  note        String?
+  relatedSaleId String?
+  createdAt   DateTime @default(now())
+
+  @@index([businessId])
+  @@index([customerId])
+}
+
+enum LedgerType {
+  PURCHASE
+  PAYMENT
+  ADJUSTMENT
+  REFUND
+  REVERSAL
+}
+
+model Sale {
+  id           String   @id @default(uuid())
+  businessId   String
+  business     Business @relation(fields: [businessId], references: [id])
+  reference    String   @unique
+  date         DateTime @default(now())
+  type         SaleType
+  totalAmount  Decimal  @db.Decimal(12,2)
+  totalCost    Decimal  @db.Decimal(12,2)
+  totalProfit  Decimal  @db.Decimal(12,2)
+  customerId   String?
+  customer     Customer? @relation(fields: [customerId], references: [id])
+  paidAmount   Decimal  @db.Decimal(12,2) @default(0)
+  paymentStatus PaymentStatus
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  items        SaleItem[]
+  @@index([businessId])
+  @@index([date])
+}
+
+enum SaleType {
+  NAMED
+  QUICK
+  BULK
+}
+
+enum PaymentStatus {
+  PAID
+  PARTIAL
+  CREDIT
+  REFUNDED
+}
+
+model SaleItem {
+  id           String   @id @default(uuid())
+  saleId       String
+  sale         Sale     @relation(fields: [saleId], references: [id])
+  productId    String?
+  product      Product? @relation(fields: [productId], references: [id])
+  storedName   String
+  qty          Decimal  @db.Decimal(12,3)
+  costAtSale   Decimal  @db.Decimal(12,2)
+  priceAtSale  Decimal  @db.Decimal(12,2)
+  totalCost    Decimal  @db.Decimal(12,2)
+  totalPrice   Decimal  @db.Decimal(12,2)
+  profit       Decimal  @db.Decimal(12,2)
+
+  @@index([saleId])
+  @@index([productId])
+}
+
+model Expense {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  amount      Decimal  @db.Decimal(12,2)
+  category    String?
+  note        String?
+  date        DateTime @default(now())
+  receiptUrl  String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([businessId])
+  @@index([date])
+}
+
+model InventoryAdjustment {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  productId   String
+  product     Product  @relation(fields: [productId], references: [id])
+  change      Decimal  @db.Decimal(12,3)
+  reason      String?
+  relatedSaleId String?
+  createdAt   DateTime @default(now())
+
+  @@index([businessId])
+  @@index([productId])
+}
+
+model AuditLog {
+  id          String   @id @default(uuid())
+  businessId  String
+  business    Business @relation(fields: [businessId], references: [id])
+  userId      String?
+  user        User?    @relation(fields: [userId], references: [id])
+  action      String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([businessId])
+  @@index([userId])
+}
