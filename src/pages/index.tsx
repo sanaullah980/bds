@@ -123,7 +123,7 @@ const styles: { [k: string]: React.CSSProperties } = {
   link: { color: '#075985', textDecoration: 'underline' },
 }
 
-export default function Home(): JSX.Element {
+export default function Home() {
   return (
     <div style={styles.page}>
       <Head>
