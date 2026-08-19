@@ -33,10 +33,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           // Create reversal sale record? Alternatively mark sale as refunded/cancelled. We'll create ledger reversal and inventory restock.
           // Customer ledger reversal
           if (sale.customerId) {
+            // Compute reversal amount as the negative of the sale totalAmount (unless it's already negative)
+            const original = Number(sale.totalAmount)
+            const reversalAmount = original < 0 ? String(original) : String(-original)
+
             await tx.customerLedgerEntry.create({ data: {
               businessId: business.id,
               customerId: sale.customerId,
-              amount: sale.totalAmount.negated ? (sale.totalAmount as any) : (String(-Number(sale.totalAmount))),
+              amount: reversalAmount,
               type: 'REVERSAL',
               note: `Reversal of ${sale.reference}`,
               relatedSaleId: sale.id,
