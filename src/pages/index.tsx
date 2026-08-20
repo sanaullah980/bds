@@ -60,7 +60,7 @@ export default function Home() {
   ]
 
   return (
-    <div style={{ fontFamily: "Inter, system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial", color: tone, minHeight: '100vh', background: '#f8fafc' }}>
+    <div style={{ fontFamily: "Inter, system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial", color: tone, minHeight: '100vh', background: 'linear-gradient(135deg, #FFD700 0%, #FFC107 40%, #FFB300 100%)' }}>
       <Head>
         <title>Shop Management</title>
         <meta name="description" content="Everything you need to manage your shop, sales and inventory in one place." />
@@ -69,7 +69,9 @@ export default function Home() {
       <div style={container}>
         <header style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 12, marginBottom: 28 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-            <div style={{ width: 56, height: 56, borderRadius: 12, background: 'linear-gradient(135deg,#06b6d4,#0ea5a4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700 }}>SM</div>
+            <div style={{ width: 56, height: 56, borderRadius: 12, background: 'linear-gradient(135deg,#b8860b,#ffd700)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700, boxShadow: '0 6px 20px rgba(0,0,0,0.12)' }}>
+              SM
+            </div>
             <div>
               <div style={{ fontSize: 18, fontWeight: 700 }}>Shop Management</div>
               <div style={{ fontSize: 13, color: '#6b7280' }}>Everything you need to manage your shop, sales and inventory</div>
@@ -80,20 +82,20 @@ export default function Home() {
             <a href="/" style={{ textDecoration: 'none', color: tone }}>Home</a>
             <a href="/dashboard" style={{ textDecoration: 'none', color: tone }}>Dashboard</a>
             <a href="/signin" style={{ textDecoration: 'none', color: tone }}>Sign in</a>
-            <button onClick={() => setDemoMode((d) => !d)} style={{ background: demoMode ? '#64748b' : '#0ea5a4', color: 'white', border: 'none', padding: '8px 12px', borderRadius: 8, cursor: 'pointer' }}>
+            <button onClick={() => setDemoMode((d) => !d)} style={{ background: demoMode ? '#64748b' : '#0ea5a4', color: 'white', border: 'none', padding: '8px 12px', borderRadius: 8, cursor: 'pointer', fontWeight: 600 }}>
               {demoMode ? 'Demo on' : 'Demo off'}
             </button>
           </nav>
         </header>
 
         <main style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}>
-          <section style={{ background: 'white', padding: 20, borderRadius: 12, boxShadow: '0 10px 30px rgba(2,6,23,0.04)' }}>
+          <section style={{ background: 'rgba(255,255,255,0.9)', padding: 20, borderRadius: 12, boxShadow: '0 10px 30px rgba(2,6,23,0.06)' }}>
             <h1 style={{ margin: '0 0 8px 0' }}>Welcome</h1>
             <p style={{ color: '#6b7280', marginTop: 0 }}>Manage products, sales, customers and expenses from a single, easy-to-use dashboard.</p>
 
             <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
               <a href="/dashboard" style={{ background: '#0ea5a4', color: 'white', padding: '10px 16px', borderRadius: 10, textDecoration: 'none', fontWeight: 600 }}>Open dashboard</a>
-              <a href="/products" style={{ background: 'transparent', border: '1px solid rgba(2,6,23,0.06)', color: tone, padding: '10px 16px', borderRadius: 10, textDecoration: 'none', fontWeight: 600 }}>Manage products</a>
+              <a href="/products" style={{ background: 'transparent', border: '1px solid rgba(2,6,23,0.06)', color: tone, padding: '10px 16px', borderRadius: 10, textDecoration: 'none', fontWeight: 600 }}>Products</a>
             </div>
 
             <section style={{ marginTop: 22 }}>
@@ -132,7 +134,7 @@ export default function Home() {
           </section>
 
           <aside style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-            <div style={{ background: 'white', padding: 16, borderRadius: 12, boxShadow: '0 10px 30px rgba(2,6,23,0.04)' }}>
+            <div style={{ background: 'rgba(255,255,255,0.9)', padding: 16, borderRadius: 12, boxShadow: '0 10px 30px rgba(2,6,23,0.06)' }}>
               <h4 style={{ margin: '0 0 8px 0' }}>Quick actions</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
                 <a href="/sales/new" style={{ textDecoration: 'none' }}><div style={{ background: '#0ea5a4', color: 'white', padding: '10px', borderRadius: 8, textAlign: 'center' }}>New Sale</div></a>
@@ -142,7 +144,7 @@ export default function Home() {
               </div>
             </div>
 
-            <div style={{ background: 'white', padding: 16, borderRadius: 12, boxShadow: '0 10px 30px rgba(2,6,23,0.04)' }}>
+            <div style={{ background: 'rgba(255,255,255,0.9)', padding: 16, borderRadius: 12, boxShadow: '0 10px 30px rgba(2,6,23,0.06)' }}>
               <h4 style={{ margin: '0 0 8px 0' }}>Demo mode</h4>
               <div style={{ color: '#6b7280' }}>When Demo mode is ON the page shows sample data and avoids calling your backend. Use it to explore the interface safely.</div>
             </div>
