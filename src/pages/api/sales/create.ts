@@ -1,5 +1,6 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
+import type { Session } from 'next-auth'
 import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '../../../lib/prisma'
 import { z } from 'zod'
@@ -12,56 +13,63 @@ const SaleItemSchema = z.object({
 
 const BodySchema = z.object({
   customerId: z.string().optional(),
-  items: z.array(SaleItemSchema).min(1),
+  items: z.array(SaleItemSchema).optional(),
+  totalAmount: z.number().optional(),
+  totalCost: z.number().optional(),
   paidAmount: z.number().min(0),
 })
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ error: 'Method not allowed' })
 
-  const session = await getServerSession(req, res, authOptions as any)
+  const session = (await getServerSession(req, res, authOptions as any)) as Session | null
   if (!session || !session.user || !session.user.email) return res.status(401).json({ error: 'Unauthorized' })
 
   const parsed = BodySchema.safeParse(req.body)
   if (!parsed.success) return res.status(400).json({ error: 'Invalid request', details: parsed.error.errors })
 
-  const { customerId, items, paidAmount } = parsed.data
+  const { customerId, items, totalAmount: totalAmountInput, totalCost: totalCostInput, paidAmount } = parsed.data
 
   try {
     // find business owned by user
-    const business = await prisma.business.findFirst({ where: { ownerId: session.user.id } })
+    const business = await prisma.business.findFirst({ where: { ownerId: (session.user as any).id } })
     if (!business) return res.status(403).json({ error: 'Business not found for user' })
 
-    // fetch products and validate stock & prices
-    const productIds = items.map((i) => i.productId)
-    const products = await prisma.product.findMany({ where: { id: { in: productIds }, businessId: business.id } })
-    if (products.length !== productIds.length) return res.status(400).json({ error: 'One or more products not found or do not belong to your business' })
-
-    // compute totals and prepare sale items
     let totalAmount = new Decimal(0)
     let totalCost = new Decimal(0)
-
     const saleItemsData: any[] = []
 
-    for (const it of items) {
-      const prod = products.find((p) => p.id === it.productId)!
-      const qty = new Decimal(it.qty)
-      const price = new Decimal((prod as any).sellingPrice)
-      const cost = new Decimal((prod as any).purchasePrice)
-      const itemTotalPrice = price.mul(qty)
-      const itemTotalCost = cost.mul(qty)
-      const itemProfit = itemTotalPrice.minus(itemTotalCost)
+    if (items && items.length > 0) {
+      // fetch products and validate stock & prices
+      const productIds = items.map((i) => i.productId)
+      const products = await prisma.product.findMany({ where: { id: { in: productIds }, businessId: business.id } })
+      if (products.length !== productIds.length) return res.status(400).json({ error: 'One or more products not found or do not belong to your business' })
 
-      // stock check
-      if (!business.allowNegativeStock) {
-        const currentStock = new Decimal((prod as any).stockQuantity)
-        if (currentStock.lt(qty)) return res.status(400).json({ error: `Insufficient stock for product ${prod.name}` })
+      for (const it of items) {
+        const prod = products.find((p) => p.id === it.productId)!
+        const qty = new Decimal(it.qty)
+        const price = new Decimal((prod as any).sellingPrice)
+        const cost = new Decimal((prod as any).purchasePrice)
+        const itemTotalPrice = price.mul(qty)
+        const itemTotalCost = cost.mul(qty)
+        const itemProfit = itemTotalPrice.minus(itemTotalCost)
+
+        // stock check
+        if (!business.allowNegativeStock) {
+          const currentStock = new Decimal((prod as any).stockQuantity)
+          if (currentStock.lt(qty)) return res.status(400).json({ error: `Insufficient stock for product ${prod.name}` })
+        }
+
+        totalAmount = totalAmount.plus(itemTotalPrice)
+        totalCost = totalCost.plus(itemTotalCost)
+
+        saleItemsData.push({ productId: prod.id, storedName: prod.name, qty: qty.toNumber(), costAtSale: cost.toNumber(), priceAtSale: price.toNumber(), totalCost: itemTotalCost.toNumber(), totalPrice: itemTotalPrice.toNumber(), profit: itemProfit.toNumber() })
       }
-
-      totalAmount = totalAmount.plus(itemTotalPrice)
-      totalCost = totalCost.plus(itemTotalCost)
-
-      saleItemsData.push({ productId: prod.id, storedName: prod.name, qty: qty.toNumber(), costAtSale: cost.toNumber(), priceAtSale: price.toNumber(), totalCost: itemTotalCost.toNumber(), totalPrice: itemTotalPrice.toNumber(), profit: itemProfit.toNumber() })
+    } else {
+      // QUICK mode: use provided totals
+      if (typeof totalAmountInput !== 'number') return res.status(400).json({ error: 'totalAmount is required when items are not provided' })
+      totalAmount = new Decimal(totalAmountInput)
+      totalCost = new Decimal(totalCostInput || 0)
     }
 
     const totalProfit = totalAmount.minus(totalCost)
