@@ -1,10 +1,10 @@
 import { useEffect } from 'react'
 import { useRouter } from 'next/router'
 
-export default function IndexRedirect() {
+export default function Redirect() {
   const router = useRouter()
   useEffect(() => {
-    router.replace('/index.html')
+    router.replace('/dashboard.html')
   }, [router])
   return null
 }
