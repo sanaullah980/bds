@@ -28,7 +28,7 @@ export default function Home() {
       try {
         const res = await fetch('/api/sales?page=1&perPage=5')
         if (res.status === 401) {
-          setError('Authentication required to load live data. Sign in to use the full app.')
+          setError('Sign in to view live business data.')
           setSales(null)
           return
         }
@@ -42,7 +42,7 @@ export default function Home() {
       } catch (err) {
         if (!mounted) return
         console.error(err)
-        setError('Unable to load live data. Try Demo mode or check server configuration.')
+        setError('Unable to load live data. Try Demo mode or check your deployment settings.')
         setSales(null)
       } finally {
         if (mounted) setLoading(false)
@@ -62,8 +62,8 @@ export default function Home() {
   return (
     <div style={{ fontFamily: "Inter, system-ui, -apple-system, Roboto, 'Helvetica Neue', Arial", color: tone, minHeight: '100vh', background: '#f8fafc' }}>
       <Head>
-        <title>Shop Management — Starter</title>
-        <meta name="description" content="Manage products, sales and customers. Demo and live modes available." />
+        <title>Shop Management</title>
+        <meta name="description" content="Everything you need to manage your shop, sales and inventory in one place." />
       </Head>
 
       <div style={container}>
@@ -72,7 +72,7 @@ export default function Home() {
             <div style={{ width: 56, height: 56, borderRadius: 12, background: 'linear-gradient(135deg,#06b6d4,#0ea5a4)', display: 'flex', alignItems: 'center', justifyContent: 'center', color: 'white', fontWeight: 700 }}>SM</div>
             <div>
               <div style={{ fontSize: 18, fontWeight: 700 }}>Shop Management</div>
-              <div style={{ fontSize: 13, color: '#6b7280' }}>Starter — clean, extensible dashboard</div>
+              <div style={{ fontSize: 13, color: '#6b7280' }}>Everything you need to manage your shop, sales and inventory</div>
             </div>
           </div>
 
@@ -88,12 +88,12 @@ export default function Home() {
 
         <main style={{ display: 'grid', gridTemplateColumns: '1fr 360px', gap: 24, alignItems: 'start' }}>
           <section style={{ background: 'white', padding: 20, borderRadius: 12, boxShadow: '0 10px 30px rgba(2,6,23,0.04)' }}>
-            <h1 style={{ margin: '0 0 8px 0' }}>Welcome to your Shop Dashboard</h1>
-            <p style={{ color: '#6b7280', marginTop: 0 }}>Manage products, sales and customers. Use Demo mode to explore the interface without configuring a backend.</p>
+            <h1 style={{ margin: '0 0 8px 0' }}>Welcome</h1>
+            <p style={{ color: '#6b7280', marginTop: 0 }}>Manage products, sales, customers and expenses from a single, easy-to-use dashboard.</p>
 
             <div style={{ display: 'flex', gap: 12, marginTop: 16 }}>
               <a href="/dashboard" style={{ background: '#0ea5a4', color: 'white', padding: '10px 16px', borderRadius: 10, textDecoration: 'none', fontWeight: 600 }}>Open dashboard</a>
-              <a href="/api/sales" target="_blank" rel="noreferrer" style={{ background: 'transparent', border: '1px solid rgba(2,6,23,0.06)', color: tone, padding: '10px 16px', borderRadius: 10, textDecoration: 'none' }}>Open API</a>
+              <a href="/products" style={{ background: 'transparent', border: '1px solid rgba(2,6,23,0.06)', color: tone, padding: '10px 16px', borderRadius: 10, textDecoration: 'none', fontWeight: 600 }}>Manage products</a>
             </div>
 
             <section style={{ marginTop: 22 }}>
@@ -124,9 +124,9 @@ export default function Home() {
             <section style={{ marginTop: 22 }}>
               <h3 style={{ margin: '0 0 10px 0' }}>Get started</h3>
               <ol style={{ color: '#6b7280' }}>
-                <li>Sign in or enable Demo mode</li>
-                <li>Set DATABASE_URL in Vercel for live deployments</li>
-                <li>Open the dashboard to manage products & sales</li>
+                <li>Sign in to access your business dashboard</li>
+                <li>Add your first products and customers</li>
+                <li>Create a sale to record income and update stock</li>
               </ol>
             </section>
           </section>
@@ -135,15 +135,16 @@ export default function Home() {
             <div style={{ background: 'white', padding: 16, borderRadius: 12, boxShadow: '0 10px 30px rgba(2,6,23,0.04)' }}>
               <h4 style={{ margin: '0 0 8px 0' }}>Quick actions</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-                <a href="/dashboard" style={{ textDecoration: 'none' }}><div style={{ background: '#0ea5a4', color: 'white', padding: '10px', borderRadius: 8, textAlign: 'center' }}>Open dashboard</div></a>
-                <a href="/signin" style={{ textDecoration: 'none' }}><div style={{ padding: '10px', borderRadius: 8, textAlign: 'center', border: '1px solid rgba(2,6,23,0.06)' }}>Sign in</div></a>
-                <a href="https://github.com/sanaullah980/bds" style={{ textDecoration: 'none' }} target="_blank" rel="noreferrer"><div style={{ padding: '10px', borderRadius: 8, textAlign: 'center', border: '1px solid rgba(2,6,23,0.06)' }}>Source</div></a>
+                <a href="/sales/new" style={{ textDecoration: 'none' }}><div style={{ background: '#0ea5a4', color: 'white', padding: '10px', borderRadius: 8, textAlign: 'center' }}>New Sale</div></a>
+                <a href="/products/new" style={{ textDecoration: 'none' }}><div style={{ padding: '10px', borderRadius: 8, textAlign: 'center', border: '1px solid rgba(2,6,23,0.06)' }}>Add product</div></a>
+                <a href="/customers/new" style={{ textDecoration: 'none' }}><div style={{ padding: '10px', borderRadius: 8, textAlign: 'center', border: '1px solid rgba(2,6,23,0.06)' }}>Add customer</div></a>
+                <a href="/expenses/new" style={{ textDecoration: 'none' }}><div style={{ padding: '10px', borderRadius: 8, textAlign: 'center', border: '1px solid rgba(2,6,23,0.06)' }}>Add expense</div></a>
               </div>
             </div>
 
             <div style={{ background: 'white', padding: 16, borderRadius: 12, boxShadow: '0 10px 30px rgba(2,6,23,0.04)' }}>
               <h4 style={{ margin: '0 0 8px 0' }}>Demo mode</h4>
-              <div style={{ color: '#6b7280' }}>When Demo mode is ON the page shows sample data and avoids calling your backend.</div>
+              <div style={{ color: '#6b7280' }}>When Demo mode is ON the page shows sample data and avoids calling your backend. Use it to explore the interface safely.</div>
             </div>
           </aside>
         </main>
