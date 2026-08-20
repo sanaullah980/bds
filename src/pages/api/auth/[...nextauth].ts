@@ -6,7 +6,7 @@ import { prisma } from '../../../lib/prisma'
 import { PrismaAdapter } from '@next-auth/prisma-adapter'
 import bcrypt from 'bcryptjs'
 
-const options: AuthOptions = {
+export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
   providers: [
     CredentialsProvider({
@@ -35,5 +35,5 @@ const options: AuthOptions = {
 }
 
 export default async function auth(req: NextApiRequest, res: NextApiResponse) {
-  return await NextAuth(req, res, options)
+  return await NextAuth(req, res, authOptions)
 }
