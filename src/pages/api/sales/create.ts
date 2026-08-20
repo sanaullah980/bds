@@ -83,8 +83,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // create sale transactionally
     const reference = `S-${Date.now().toString().slice(-6)}`
 
+    // determine sale type explicitly to satisfy Prisma generated types
+    const saleType: 'NAMED' | 'QUICK' | 'BULK' = items && items.length > 0 ? 'NAMED' : 'QUICK'
+
     const result = await prisma.$transaction(async (tx) => {
-      const sale = await tx.sale.create({ data: { businessId: business.id, reference, totalAmount: totalAmount.toNumber(), totalCost: totalCost.toNumber(), totalProfit: totalProfit.toNumber(), customerId: customerId || null, paidAmount: paid.toNumber(), paymentStatus } })
+      const sale = await tx.sale.create({
+        data: {
+          businessId: business.id,
+          reference,
+          type: saleType,
+          totalAmount: totalAmount.toNumber(),
+          totalCost: totalCost.toNumber(),
+          totalProfit: totalProfit.toNumber(),
+          customerId: customerId || null,
+          paidAmount: paid.toNumber(),
+          paymentStatus,
+        },
+      })
 
       for (const it of saleItemsData) {
         await tx.saleItem.create({ data: { saleId: sale.id, productId: it.productId, storedName: it.storedName, qty: it.qty, costAtSale: it.costAtSale, priceAtSale: it.priceAtSale, totalCost: it.totalCost, totalPrice: it.totalPrice, profit: it.profit } })
