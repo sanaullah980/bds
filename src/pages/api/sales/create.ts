@@ -1,7 +1,7 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { getServerSession } from 'next-auth/next'
 import { authOptions } from '../auth/[...nextauth]'
-import prisma from '../../../lib/prisma'
+import { prisma } from '../../../lib/prisma'
 import { z } from 'zod'
 import Decimal from 'decimal.js'
 
@@ -46,15 +46,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     for (const it of items) {
       const prod = products.find((p) => p.id === it.productId)!
       const qty = new Decimal(it.qty)
-      const price = new Decimal(prod.sellingPrice as any)
-      const cost = new Decimal(prod.purchasePrice as any)
+      const price = new Decimal((prod as any).sellingPrice)
+      const cost = new Decimal((prod as any).purchasePrice)
       const itemTotalPrice = price.mul(qty)
       const itemTotalCost = cost.mul(qty)
       const itemProfit = itemTotalPrice.minus(itemTotalCost)
 
       // stock check
       if (!business.allowNegativeStock) {
-        const currentStock = new Decimal(prod.stockQuantity as any)
+        const currentStock = new Decimal((prod as any).stockQuantity)
         if (currentStock.lt(qty)) return res.status(400).json({ error: `Insufficient stock for product ${prod.name}` })
       }
 
