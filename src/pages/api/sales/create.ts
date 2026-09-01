@@ -5,6 +5,7 @@ import { authOptions } from '../auth/[...nextauth]'
 import { prisma } from '../../../lib/prisma'
 import { z } from 'zod'
 import Decimal from 'decimal.js'
+import { Prisma } from '@prisma/client'
 
 const SaleItemSchema = z.object({
   productId: z.string(),
@@ -63,7 +64,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         totalAmount = totalAmount.plus(itemTotalPrice)
         totalCost = totalCost.plus(itemTotalCost)
 
-        saleItemsData.push({ productId: prod.id, storedName: prod.name, qty: qty.toNumber(), costAtSale: cost.toNumber(), priceAtSale: price.toNumber(), totalCost: itemTotalCost.toNumber(), totalPrice: itemTotalPrice.toNumber(), profit: itemProfit.toNumber() })
+        saleItemsData.push({
+          productId: prod.id,
+          storedName: prod.name,
+          qty: qty.toNumber(),
+          costAtSale: cost.toNumber(),
+          priceAtSale: price.toNumber(),
+          totalCost: itemTotalCost.toNumber(),
+          totalPrice: itemTotalPrice.toNumber(),
+          profit: itemProfit.toNumber(),
+        })
       }
     } else {
       // QUICK mode: use provided totals
@@ -76,15 +86,27 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     // determine payment status
     const paid = new Decimal(paidAmount)
-    let paymentStatus: 'PAID' | 'PARTIAL' | 'CREDIT' = 'CREDIT'
-    if (paid.gte(totalAmount)) paymentStatus = 'PAID'
-    else if (paid.gt(0)) paymentStatus = 'PARTIAL'
+    let paymentStatus: Prisma.PaymentStatus = Prisma.PaymentStatus.CREDIT
+    if (paid.gte(totalAmount)) paymentStatus = Prisma.PaymentStatus.PAID
+    else if (paid.gt(0)) paymentStatus = Prisma.PaymentStatus.PARTIAL
 
     // create sale transactionally
     const reference = `S-${Date.now().toString().slice(-6)}`
 
     const result = await prisma.$transaction(async (tx) => {
-      const sale = await tx.sale.create({ data: { businessId: business.id, reference, totalAmount: totalAmount.toNumber(), totalCost: totalCost.toNumber(), totalProfit: totalProfit.toNumber(), customerId: customerId || null, paidAmount: paid.toNumber(), paymentStatus } })
+      const sale = await tx.sale.create({
+        data: {
+          businessId: business.id,
+          reference,
+          type: items && items.length > 0 ? Prisma.SaleType.NAMED : Prisma.SaleType.QUICK,
+          totalAmount: totalAmount.toNumber(),
+          totalCost: totalCost.toNumber(),
+          totalProfit: totalProfit.toNumber(),
+          customerId: customerId || null,
+          paidAmount: paid.toNumber(),
+          paymentStatus,
+        },
+      })
 
       for (const it of saleItemsData) {
         await tx.saleItem.create({ data: { saleId: sale.id, productId: it.productId, storedName: it.storedName, qty: it.qty, costAtSale: it.costAtSale, priceAtSale: it.priceAtSale, totalCost: it.totalCost, totalPrice: it.totalPrice, profit: it.profit } })
@@ -98,11 +120,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       // ledger entries
       if (paid.gt(0)) {
-        await tx.customerLedgerEntry.create({ data: { businessId: business.id, customerId: customerId || null, amount: paid.toNumber(), type: 'PAYMENT', note: `Payment for ${reference}`, relatedSaleId: sale.id } })
+        await tx.customerLedgerEntry.create({ data: { businessId: business.id, customerId: customerId || null, amount: paid.toNumber(), type: Prisma.LedgerType.PAYMENT, note: `Payment for ${reference}`, relatedSaleId: sale.id } })
       }
 
       // record purchase ledger entry as a net purchase (credit)
-      await tx.customerLedgerEntry.create({ data: { businessId: business.id, customerId: customerId || null, amount: totalAmount.toNumber(), type: 'PURCHASE', note: `Sale ${reference}`, relatedSaleId: sale.id } })
+      await tx.customerLedgerEntry.create({ data: { businessId: business.id, customerId: customerId || null, amount: totalAmount.toNumber(), type: Prisma.LedgerType.PURCHASE, note: `Sale ${reference}`, relatedSaleId: sale.id } })
 
       return sale
     })
