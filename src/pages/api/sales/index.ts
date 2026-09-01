@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import type { Prisma } from '@prisma/client'
+import { Prisma } from '@prisma/client'
 import { prisma } from '../../../lib/prisma'
 import { getBusinessForSession } from '../../../lib/auth'
 import { z } from 'zod'
@@ -75,7 +75,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
         const totalProfit = totalAmount.minus(totalCost)
         const paid = new Decimal(data.paidAmount || '0')
-        const paymentStatus = paid.greaterThanOrEqualTo(totalAmount) ? 'PAID' : (paid.equals(0) ? 'CREDIT' : 'PARTIAL')
+        let paymentStatus: Prisma.PaymentStatus = Prisma.PaymentStatus.CREDIT
+        if (paid.greaterThanOrEqualTo(totalAmount)) paymentStatus = Prisma.PaymentStatus.PAID
+        else if (paid.equals(0)) paymentStatus = Prisma.PaymentStatus.CREDIT
+        else paymentStatus = Prisma.PaymentStatus.PARTIAL
 
         // Transaction: create sale and customer ledger if customer provided
         const created = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -83,13 +86,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             businessId: business.id,
             reference: generateReference(),
             date: data.date ? new Date(data.date) : new Date(),
-            type: 'QUICK',
+            type: Prisma.SaleType.QUICK,
             totalAmount: totalAmount.toFixed(2),
             totalCost: totalCost.toFixed(2),
             totalProfit: totalProfit.toFixed(2),
             customerId: data.customerId || null,
             paidAmount: paid.toFixed(2),
-            paymentStatus: paymentStatus as any,
+            paymentStatus,
             note: data.note || null,
           } })
 
@@ -100,7 +103,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               businessId: business.id,
               customerId: data.customerId,
               amount: totalAmount.toFixed(2),
-              type: 'PURCHASE',
+              type: Prisma.LedgerType.PURCHASE,
               note: `Sale ${sale.reference}`,
               relatedSaleId: sale.id,
             } })
@@ -110,7 +113,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 businessId: business.id,
                 customerId: data.customerId,
                 amount: paid.negated().toFixed(2),
-                type: 'PAYMENT',
+                type: Prisma.LedgerType.PAYMENT,
                 note: `Payment for ${sale.reference}`,
                 relatedSaleId: sale.id,
               } })
@@ -184,7 +187,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const paid = new Decimal(data.paidAmount || '0')
-      const paymentStatus = paid.greaterThanOrEqualTo(totalAmount) ? 'PAID' : (paid.equals(0) ? 'CREDIT' : 'PARTIAL')
+      let paymentStatus: Prisma.PaymentStatus = Prisma.PaymentStatus.CREDIT
+      if (paid.greaterThanOrEqualTo(totalAmount)) paymentStatus = Prisma.PaymentStatus.PAID
+      else if (paid.equals(0)) paymentStatus = Prisma.PaymentStatus.CREDIT
+      else paymentStatus = Prisma.PaymentStatus.PARTIAL
 
       // Transactional create
       const created = await prisma.$transaction(async (tx: Prisma.TransactionClient) => {
@@ -192,13 +198,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           businessId: business.id,
           reference: generateReference(),
           date: data.date ? new Date(data.date) : new Date(),
-          type: data.type === 'NAMED' ? 'NAMED' : 'BULK',
+          type: data.type === 'NAMED' ? Prisma.SaleType.NAMED : Prisma.SaleType.BULK,
           totalAmount: totalAmount.toFixed(2),
           totalCost: totalCost.toFixed(2),
           totalProfit: totalAmount.minus(totalCost).toFixed(2),
           customerId: data.customerId || null,
           paidAmount: paid.toFixed(2),
-          paymentStatus: paymentStatus as any,
+          paymentStatus,
           note: data.note || null,
         } })
 
@@ -240,7 +246,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             businessId: business.id,
             customerId: data.customerId,
             amount: totalAmount.toFixed(2),
-            type: 'PURCHASE',
+            type: Prisma.LedgerType.PURCHASE,
             note: `Sale ${sale.reference}`,
             relatedSaleId: sale.id,
           } })
@@ -249,7 +255,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               businessId: business.id,
               customerId: data.customerId,
               amount: paid.negated().toFixed(2),
-              type: 'PAYMENT',
+              type: Prisma.LedgerType.PAYMENT,
               note: `Payment for ${sale.reference}`,
               relatedSaleId: sale.id,
             } })
